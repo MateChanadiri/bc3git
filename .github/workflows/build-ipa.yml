@@ -1,6 +1,5 @@
 # Builds an unsigned BitChord IPA for sideloading. Run it by hand:
 # Actions tab -> "Build IPA" -> Run workflow. The IPA is the "BitChord-ipa" artifact on the finished run.
-# The whole app source is the one file BitChord.zip in this repo; this workflow unpacks and builds it.
 name: Build IPA
 
 on:
@@ -30,14 +29,10 @@ jobs:
           echo "Using $XCODE"
           xcodebuild -version
 
-      - name: Unpack source
-        run: unzip -q BitChord.zip -d src
-
       - name: Build IPA
         env:
           JOBS: "4"
         run: |
-          cd src/BitChord-iOS-main
           chmod +x scripts/*.sh
           scripts/make-ipa.sh
 
@@ -45,6 +40,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: BitChord-ipa
-          path: src/BitChord-iOS-main/build/*.ipa
+          path: build/*.ipa
           if-no-files-found: error
           retention-days: 30
