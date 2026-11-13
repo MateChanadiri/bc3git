@@ -1,0 +1,50 @@
+# Builds an unsigned BitChord IPA for sideloading. Run it by hand:
+# Actions tab -> "Build IPA" -> Run workflow. The IPA is the "BitChord-ipa" artifact on the finished run.
+# The whole app source is the one file BitChord.zip in this repo; this workflow unpacks and builds it.
+name: Build IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: "Runner label (xcode-27, or macos-26 if that one is not available to you)"
+        default: xcode-27
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  ipa:
+    name: Build unsigned IPA
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          [ -n "$XCODE" ] || XCODE=/Applications/Xcode.app
+          echo "DEVELOPER_DIR=$XCODE/Contents/Developer" >> "$GITHUB_ENV"
+          echo "Using $XCODE"
+          xcodebuild -version
+
+      - name: Unpack source
+        run: unzip -q BitChord.zip -d src
+
+      - name: Build IPA
+        env:
+          JOBS: "4"
+        run: |
+          cd src/BitChord-iOS-main
+          chmod +x scripts/*.sh
+          scripts/make-ipa.sh
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: BitChord-ipa
+          path: src/BitChord-iOS-main/build/*.ipa
+          if-no-files-found: error
+          retention-days: 30
